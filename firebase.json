@@ -1,7 +1,7 @@
 {
   "firestore": { "rules": "firestore.rules" },
   "hosting": {
-    "public": "public",
+    "public": "docs",
     "ignore": ["firebase.json", "**/.*"],
     "headers": [{ "source": "**/*.@(js|css)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }]
   },

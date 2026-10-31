@@ -5,7 +5,7 @@
 2. **Build → Authentication → Get started → Sign-in method**: *Google*, *Email/Password* ve *Anonymous* sağlayıcılarını aç.
 3. **Build → Firestore Database → Create database** → konum `europe-west1` (ya da `eur3`) → *production mode*.
 4. **Firestore → Rules** sekmesine `firestore.rules` dosyasının içeriğini yapıştır → **Publish**.
-5. **Project settings (⚙) → Your apps → Web (</>)** → uygulama adı `sh2-quiz` → çıkan `firebaseConfig` değerlerini `public/config.js` içine yapıştır.
+5. **Project settings (⚙) → Your apps → Web (</>)** → uygulama adı `sh2-quiz` → çıkan `firebaseConfig` değerlerini `docs/config.js` içine yapıştır.
 
 ## 2. Yayına alma (Node.js kurulu bir bilgisayarda)
 ```
