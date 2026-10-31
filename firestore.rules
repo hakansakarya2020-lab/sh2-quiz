@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    // A real account (Google or e-mail). Players joining by PIN are anonymous.
+    function member() { return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous'; }
+
+    match /users/{uid} {
+      allow read, write: if member() && request.auth.uid == uid;
+    }
+
+    // Each teacher's library: only the owner can see or change it.
+    match /quizzes/{id} {
+      allow read, delete: if member() && resource.data.ownerId == request.auth.uid;
+      allow update: if member() && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.questions.size() <= 300;
+      allow create: if member() && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.title is string && request.resource.data.questions is list
+        && request.resource.data.questions.size() <= 300;
+    }
+
+    // PIN -> game lookup. Anyone signed in (players too) can resolve a PIN, nobody can list them.
+    match /pins/{pin} {
+      allow get: if signedIn();
+      allow create: if member() && request.resource.data.hostId == request.auth.uid;
+      allow update: if member() && request.resource.data.hostId == request.auth.uid
+        && (resource.data.hostId == request.auth.uid || resource.data.active == false);
+      allow delete: if member() && resource.data.hostId == request.auth.uid;
+    }
+
+    match /games/{gid} {
+      function game() { return get(/databases/$(database)/documents/games/$(gid)).data; }
+      function isHost() { return member() && game().hostId == request.auth.uid; }
+
+      // The public game state never contains the answer key until the host reveals it.
+      allow get: if signedIn();
+      allow list: if member() && resource.data.hostId == request.auth.uid;
+      allow create: if member() && request.resource.data.hostId == request.auth.uid;
+      allow update: if member() && resource.data.hostId == request.auth.uid && request.resource.data.hostId == request.auth.uid;
+      allow delete: if member() && resource.data.hostId == request.auth.uid;
+
+      // Answer key, host only.
+      match /secret/{d} {
+        allow read, delete: if isHost();
+        allow create, update: if member() && getAfter(/databases/$(database)/documents/games/$(gid)).data.hostId == request.auth.uid;
+      }
+
+      // One document per player, written by that player only.
+      match /players/{pid} {
+        allow read: if signedIn() && (request.auth.uid == pid || isHost());
+        allow create: if signedIn() && request.auth.uid == pid
+          && game().phase != 'ended'
+          && request.resource.data.keys().hasOnly(['nick', 'joinedAt', 'a'])
+          && request.resource.data.nick is string
+          && request.resource.data.nick.size() > 0 && request.resource.data.nick.size() <= 30
+          && request.resource.data.joinedAt == request.time
+          && request.resource.data.a is map && request.resource.data.a.size() == 0;
+        // An answer: exactly one new key, for the open question, stamped with server time, never changed later.
+        allow update: if signedIn() && request.auth.uid == pid && validAnswer();
+        allow delete: if isHost();
+
+        function validAnswer() {
+          let g = game();
+          let k = string(g.qi);
+          let d = request.resource.data.a.diff(resource.data.a);
+          let ans = request.resource.data.a[k];
+          return g.phase == 'question'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['a'])
+            && d.removedKeys().size() == 0 && d.changedKeys().size() == 0
+            && d.addedKeys().hasOnly([k]) && d.addedKeys().size() == 1
+            && ans.keys().hasOnly(['c', 'at'])
+            && ans.c is int && ans.c >= 0 && ans.c < g.question.opts.size()
+            && ans.at == request.time;
+        }
+      }
+    }
+  }
+}
