@@ -574,6 +574,8 @@ function openBulk() {
 }
 
 /* host */
+// Short questions get the big display type; case vignettes switch to readable body text.
+const qText = (t, small) => `<div class="qtext${small || String(t).length > 160 ? " long" : ""}">${esc(t)}</div>`;
 function tilesHTML(q, { counts, correct, clickable, picked, answered } = {}) {
   const tot = counts ? counts.reduce((a, b) => a + b, 0) || 1 : 1;
   return `<div class="tiles">${q.opts.map((o, j) => {
@@ -613,14 +615,14 @@ function hostBody() {
   if (g.phase === "question") {
     const done = P.filter(p => p.a && p.a[g.qi]).length;
     return `<div class="stagehead"><span class="tag">Soru ${g.qi + 1} / ${g.total}</span><span class="tnum" id="tnum">${Math.ceil(hRemaining() / 1000)}</span></div>
-      <div class="timer"><i id="tbar"></i></div><div class="qtext">${esc(g.question.q)}</div>${tilesHTML(g.question)}
+      <div class="timer"><i id="tbar"></i></div>${qText(g.question.q)}${tilesHTML(g.question)}
       <div class="row" style="justify-content:space-between"><span id="answered"><b class="tnum" style="font-size:18px">${done}</b> / ${P.length} cevapladı</span><button class="btn" data-act="h-reveal">Süreyi bitir</button></div>`;
   }
   if (g.phase === "reveal") {
     if (!g.reveal) return `<p class="note">Cevaplar toplanıyor…</p>`;
     const last = g.qi + 1 >= g.total;
     return `<div class="stagehead"><span class="tag">Soru ${g.qi + 1} / ${g.total} · cevap</span><span class="note">${g.reveal.counts.reduce((a, b) => a + b, 0)} / ${g.playerCount || 0} cevap</span></div>
-      <div class="qtext">${esc(g.question.q)}</div>${tilesHTML(g.question, { counts: g.reveal.counts, correct: g.reveal.correct })}
+      ${qText(g.question.q)}${tilesHTML(g.question, { counts: g.reveal.counts, correct: g.reveal.correct })}
       ${g.reveal.exp ? `<div class="exp"><b>Açıklama.</b> ${esc(g.reveal.exp)}</div>` : ""}
       <div class="row"><button class="btn" data-act="h-board">Sıralamayı göster</button>${last ? '<button class="btn primary" data-act="h-end">Sonuçları göster</button>' : '<button class="btn primary" data-act="h-next">Sonraki soru</button>'}</div>`;
   }
@@ -678,7 +680,7 @@ function playView() {
   else if (g.phase === "question") {
     const a = S.me.a && S.me.a[g.qi], rem = pRemaining(), closed = !!a || rem <= 0;
     body = `<div class="stagehead"><span class="tag">Soru ${g.qi + 1} / ${g.total}</span><span class="tnum" id="tnum">${Math.ceil(rem / 1000)}</span></div>
-      <div class="timer"><i id="tbar"></i></div><div class="qtext">${esc(g.question.q)}</div>
+      <div class="timer"><i id="tbar"></i></div>${qText(g.question.q)}
       ${tilesHTML(g.question, { clickable: true, picked: a ? a.c : null, answered: closed })}
       <p class="note" style="text-align:center;margin:0">${a ? "Cevabın alındı. Diğerleri bekleniyor…" : rem <= 0 ? "Süre doldu." : "Hızlı cevap daha çok puan getirir."}</p>`;
   } else if (g.phase === "reveal") {
@@ -687,7 +689,7 @@ function playView() {
       const a = S.me.a && S.me.a[g.qi]; const ok = a && a.c === g.reveal.correct;
       body = `<div class="result ${!a ? "none" : ok ? "ok" : "bad"}"><h2>${!a ? "Cevap vermedin" : ok ? "Doğru!" : "Yanlış"}</h2>
         ${mine ? `<div><b class="tnum" style="font-size:20px">+${mine[1]}</b> puan · toplam ${mine[2]} · ${mine[3]}. sıradasın</div>` : ""}</div>
-        <div class="qtext" style="font-size:20px">${esc(g.question.q)}</div>${tilesHTML(g.question, { correct: g.reveal.correct, picked: a ? a.c : null })}
+        ${qText(g.question.q, true)}${tilesHTML(g.question, { correct: g.reveal.correct, picked: a ? a.c : null })}
         ${g.reveal.exp ? `<div class="exp"><b>Açıklama.</b> ${esc(g.reveal.exp)}</div>` : ""}`;
     }
   } else if (g.phase === "board" || g.phase === "ended") {

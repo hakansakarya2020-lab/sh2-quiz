@@ -232,3 +232,6 @@ input[type=email],input[type=password],input[type=tel]{background:var(--surface)
   .railfoot{display:flex;flex-direction:row;align-items:center;margin-left:auto;margin-top:0;padding:0;gap:10px}
   .railfoot .userbox span{display:none}
 }
+.qtext{white-space:pre-line}
+.qtext.long{font:400 clamp(16px,1.6vw,20px)/1.6 var(--f-body);letter-spacing:0;max-width:80ch}
+.tile{font-size:16px}
